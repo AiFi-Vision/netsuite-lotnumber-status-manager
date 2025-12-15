@@ -38,6 +38,7 @@ SuiteScripts/lot_number
 - Quantity must be numeric, > 0, and <= available
 - Requires lot-numbered items and inventory statuses to exist in NetSuite
 - Supports dynamic inventory detail updates
+<img width="1917" height="503" alt="image" src="https://github.com/user-attachments/assets/b74ec297-18b1-40c9-a65d-55d72b6bce82" />
 
 ## License
 
