@@ -30,32 +30,31 @@ define(["N/record", "N/search", "N/log", "N/ui/serverWidget"], function (
   function renderPage(context) {
     var form = ui.createForm({ title: "Lot Numbered Items Status Manager" });
 
+    // --- SUBLIST ---
     var sublist = form.addSublist({
       id: "custpage_lotnum_list",
       label: "LotNumbered Item Results",
       type: ui.SublistType.INLINEEDITOR,
     });
 
-    // Fields (same as your current)
+    // --- FIELDS ---
     sublist.addField({
       id: "custpage_item_checked",
       type: ui.FieldType.CHECKBOX,
-      label: "select",
+      label: "Select",
     });
     sublist
       .addField({
         id: "custpage_item_id",
         type: ui.FieldType.TEXT,
-        label: "ItemName",
+        label: "Item Name",
       })
-      .updateDisplayType({
-        displayType: ui.FieldDisplayType.DISABLED,
-      });
+      .updateDisplayType({ displayType: ui.FieldDisplayType.DISABLED });
     sublist
       .addField({
         id: "custpage_item_id_value",
         type: ui.FieldType.TEXT,
-        label: "ItemName",
+        label: "Item Internal ID",
       })
       .updateDisplayType({ displayType: ui.FieldDisplayType.HIDDEN });
     sublist
@@ -64,30 +63,26 @@ define(["N/record", "N/search", "N/log", "N/ui/serverWidget"], function (
         type: ui.FieldType.TEXT,
         label: "Lot Number",
       })
-      .updateDisplayType({
-        displayType: ui.FieldDisplayType.DISABLED,
-      });
+      .updateDisplayType({ displayType: ui.FieldDisplayType.DISABLED });
     sublist
       .addField({
         id: "custpage_lot_num_value",
         type: ui.FieldType.TEXT,
-        label: "Lot Number",
+        label: "Lot Internal ID",
       })
       .updateDisplayType({ displayType: ui.FieldDisplayType.HIDDEN });
     sublist
       .addField({
         id: "custpage_binnum",
         type: ui.FieldType.TEXT,
-        label: "BinNumber",
+        label: "Bin Number",
       })
-      .updateDisplayType({
-        displayType: ui.FieldDisplayType.DISABLED,
-      });
+      .updateDisplayType({ displayType: ui.FieldDisplayType.DISABLED });
     sublist
       .addField({
         id: "custpage_binnum_value",
         type: ui.FieldType.TEXT,
-        label: "BinNumber",
+        label: "Bin Internal ID",
       })
       .updateDisplayType({ displayType: ui.FieldDisplayType.HIDDEN });
     sublist
@@ -96,69 +91,60 @@ define(["N/record", "N/search", "N/log", "N/ui/serverWidget"], function (
         type: ui.FieldType.TEXT,
         label: "Location",
       })
-      .updateDisplayType({
-        displayType: ui.FieldDisplayType.DISABLED,
-      });
+      .updateDisplayType({ displayType: ui.FieldDisplayType.DISABLED });
     sublist
       .addField({
         id: "custpage_location_value",
         type: ui.FieldType.TEXT,
-        label: "Location",
+        label: "Location Internal ID",
       })
       .updateDisplayType({ displayType: ui.FieldDisplayType.HIDDEN });
     sublist
       .addField({
         id: "custpage_onhand",
         type: ui.FieldType.TEXT,
-        label: "onhand",
+        label: "On Hand",
       })
-      .updateDisplayType({
-        displayType: ui.FieldDisplayType.DISABLED,
-      });
+      .updateDisplayType({ displayType: ui.FieldDisplayType.DISABLED });
     sublist
       .addField({
         id: "custpage_available",
         type: ui.FieldType.TEXT,
-        label: "onavailable",
+        label: "Available",
       })
-      .updateDisplayType({
-        displayType: ui.FieldDisplayType.DISABLED,
-      });
+      .updateDisplayType({ displayType: ui.FieldDisplayType.DISABLED });
     sublist
       .addField({
         id: "custpage_status",
         type: ui.FieldType.TEXT,
-        label: "Status",
+        label: "Current Status",
       })
-      .updateDisplayType({
-        displayType: ui.FieldDisplayType.DISABLED,
-      });
+      .updateDisplayType({ displayType: ui.FieldDisplayType.DISABLED });
     sublist
       .addField({
         id: "custpage_orig_status",
         type: ui.FieldType.SELECT,
-        label: "Orig_Status",
+        label: "Original Status",
       })
       .updateDisplayType({ displayType: ui.FieldDisplayType.HIDDEN });
-    sublist
-      .addField({
-        id: "custpage_update_quantity",
-        type: ui.FieldType.TEXT,
-        label: "ChangableQuantity",
-      })
-      .updateDisplayType({ displayType: ui.FieldDisplayType.NORMAL });
+    sublist.addField({
+      id: "custpage_update_quantity",
+      type: ui.FieldType.TEXT,
+      label: "Changeable Quantity",
+    });
 
     var statusField = sublist.addField({
       id: "custpage_update_status",
       type: ui.FieldType.SELECT,
-      label: "ChangableStatus",
+      label: "Changeable Status",
     });
-    // populate inventorystatus options
+
+    // Populate inventory status options
     try {
       search
         .create({ type: "inventorystatus", columns: ["name"] })
         .run()
-        .each(function (r) {
+        .each((r) => {
           statusField.addSelectOption({
             value: r.id,
             text: r.getValue("name"),
@@ -169,8 +155,8 @@ define(["N/record", "N/search", "N/log", "N/ui/serverWidget"], function (
       log.debug("Could not load inventorystatus options", e);
     }
 
-    // Search inventorybalance (same as you had)
-    var inventorydetailSearchObj = search.create({
+    // --- SEARCH INVENTORY BALANCE ---
+    var inventorySearch = search.create({
       type: "inventorybalance",
       filters: [["item.islotitem", "is", "T"]],
       columns: [
@@ -185,11 +171,11 @@ define(["N/record", "N/search", "N/log", "N/ui/serverWidget"], function (
     });
 
     var grouped = {};
-    var paged = inventorydetailSearchObj.runPaged({ pageSize: 5000 });
+    var paged = inventorySearch.runPaged({ pageSize: 5000 });
     var idx = 0;
-    paged.pageRanges.forEach(function (pr) {
+    paged.pageRanges.forEach((pr) => {
       var page = paged.fetch({ index: pr.index });
-      page.data.forEach(function (result) {
+      page.data.forEach((result) => {
         grouped[idx] = {
           lotNum: result.getValue({ name: "inventorynumber" }),
           lotNumText: result.getText({ name: "inventorynumber" }),
@@ -208,129 +194,114 @@ define(["N/record", "N/search", "N/log", "N/ui/serverWidget"], function (
       });
     });
 
-    var rows = Object.keys(grouped).map(function (k) {
-      return grouped[k];
-    });
-    rows.sort(function (a, b) {
-      return String(a.lotNumText).localeCompare(String(b.lotNumText));
-    });
+    var rows = Object.values(grouped);
+    rows.sort((a, b) =>
+      String(a.lotNumText).localeCompare(String(b.lotNumText))
+    );
 
+    // --- PAGINATION ---
     var pageIndex = parseInt(context.request.parameters.page) || 0;
-    var pageSize = 25;
+    var pageSize = 3;
+    var totalPages = Math.ceil(rows.length / pageSize);
     var start = pageIndex * pageSize;
     var pageRows = rows.slice(start, start + pageSize);
 
-    var line = 0;
-    pageRows.forEach(function (row) {
-      sublist.setSublistValue({
-        id: "custpage_lot_num",
-        line: line,
-        value: safe(row.lotNumText) || "",
-      });
-      sublist.setSublistValue({
-        id: "custpage_lot_num_value",
-        line: line,
-        value: safeInt(row.lotNum) || "",
-      });
-      sublist.setSublistValue({
-        id: "custpage_binnum",
-        line: line,
-        value: safe(row.binNumText) || "",
-      });
-      sublist.setSublistValue({
-        id: "custpage_binnum_value",
-        line: line,
-        value: safeInt(row.binNum) || "",
-      });
-      sublist.setSublistValue({
-        id: "custpage_onhand",
-        line: line,
-        value: safe(row.onhand) || "",
-      });
-      sublist.setSublistValue({
-        id: "custpage_available",
-        line: line,
-        value: safe(row.available) || "",
-      });
-      sublist.setSublistValue({
-        id: "custpage_status",
-        line: line,
-        value: row.statusText || "",
-      });
-      sublist.setSublistValue({
-        id: "custpage_orig_status",
-        line: line,
-        value: row.status || "",
-      });
+    // --- POPULATE SUBLIST ---
+    pageRows.forEach(function (row, line) {
       sublist.setSublistValue({
         id: "custpage_item_id",
-        line: line,
-        value: safe(row.itemIdText) || "",
+        line,
+        value: safe(row.itemIdText),
       });
       sublist.setSublistValue({
         id: "custpage_item_id_value",
-        line: line,
-        value: safeInt(row.itemId) || "",
+        line,
+        value: safe(row.itemId),
+      });
+      sublist.setSublistValue({
+        id: "custpage_lot_num",
+        line,
+        value: safe(row.lotNumText),
+      });
+      sublist.setSublistValue({
+        id: "custpage_lot_num_value",
+        line,
+        value: safe(row.lotNum),
+      });
+      sublist.setSublistValue({
+        id: "custpage_binnum",
+        line,
+        value: safe(row.binNumText),
+      });
+      sublist.setSublistValue({
+        id: "custpage_binnum_value",
+        line,
+        value: safe(row.binNum),
       });
       sublist.setSublistValue({
         id: "custpage_location",
-        line: line,
-        value: safe(row.locationText) || "",
+        line,
+        value: safe(row.locationText),
       });
       sublist.setSublistValue({
         id: "custpage_location_value",
-        line: line,
-        value: safeInt(row.location) || "",
+        line,
+        value: safe(row.location),
       });
-      line++;
-    });
-
-    form.addButton({
-      id: "custpage_reload",
-      label: "Update Status",
-      functionName: "performUpdateStatus",
-    });
-
-    // Input field for page number
-    var gotoPageField = form.addField({
-      id: "custpage_goto_page",
-      type: ui.FieldType.INTEGER,
-      label: "Go To Page",
-    });
-    gotoPageField.defaultValue = (pageIndex + 1).toString(); // show current page
-
-    if (pageIndex > 0)
-      form.addButton({
-        id: "custpage_prev",
-        label: "Previous Page",
-        functionName: "goPrev",
+      sublist.setSublistValue({
+        id: "custpage_onhand",
+        line,
+        value: safe(row.onhand),
       });
-
-    var totalPages = Math.ceil(rows.length / pageSize);
-
-    var pageInfo = form.addField({
-      id: "custpage_page_info",
-      type: ui.FieldType.INLINEHTML,
-      label: "Page Info",
-    });
-
-    pageInfo.defaultValue =
-      "<b>Page " + (pageIndex + 1) + " of " + totalPages + "</b>";
-
-    if (pageIndex < totalPages - 1)
-      form.addButton({
-        id: "custpage_next",
-        label: "Next Page",
-        functionName: "goNext",
+      sublist.setSublistValue({
+        id: "custpage_available",
+        line,
+        value: safe(row.available),
       });
-
-    form.addButton({
-      id: "custpage_goto_button",
-      label: "Go To Page",
-      functionName: "gotoPage",
+      sublist.setSublistValue({
+        id: "custpage_status",
+        line,
+        value: safe(row.statusText),
+      });
+      sublist.setSublistValue({
+        id: "custpage_orig_status",
+        line,
+        value: safe(row.status),
+      });
     });
 
     form.clientScriptModulePath = "./CS_LotNumberStatus.js";
+
+    // --- GO TO PAGE INPUT ---
+    var buttonsRowHtml = `
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <button type="button" id="custpage_update_status_btn">Update Status</button>
+          <button type="button" id="custpage_prev_btn" ${
+            pageIndex === 0 ? "disabled" : ""
+          }>Previous</button>
+          <label for="custpage_goto_page_input"> Page:</label>
+          <input type="number" id="custpage_goto_page_input" min="1" max="${totalPages}" value="${
+      pageIndex + 1
+    }" style="width:60px;"><label> / ${totalPages}</label>
+          <button type="button" id="custpage_next_btn" ${
+            pageIndex + 1 >= totalPages ? "disabled" : ""
+          }>Next</button>
+      </div>
+      <script>
+          // expose server value to client
+          var TOTAL_PAGES = ${totalPages};
+      </script>
+      `;
+
+    var buttonsField = form.addField({
+      id: "custpage_buttons_row",
+      type: ui.FieldType.INLINEHTML,
+      label: "Buttons Row",
+    });
+
+    buttonsField.defaultValue = buttonsRowHtml;
+
+    // Hidden page index
     var pageField = form.addField({
       id: "custpage_page",
       label: "Page",

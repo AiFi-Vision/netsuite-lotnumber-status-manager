@@ -258,11 +258,51 @@ define(["N/https", "N/url", "N/currentRecord", "N/ui/dialog"], function (
 
   function pageInit(context) {
     hideInlineEditor();
+
+    var updateBtn = document.getElementById("custpage_update_status_btn");
+    if (updateBtn) {
+      updateBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        performUpdateStatus();
+      });
+    }
+
+    // Previous Page button
+    var prevBtn = document.getElementById("custpage_prev_btn");
+    if (prevBtn) {
+      prevBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        goPrev();
+      });
+    }
+
+    // Next Page button
+    var nextBtn = document.getElementById("custpage_next_btn");
+    if (nextBtn) {
+      nextBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        goNext();
+      });
+    }
+
+    // Go To Page input box
+    var gotoPageInput = document.getElementById("custpage_goto_page_input");
+    if (gotoPageInput) {
+      gotoPageInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          var page = parseInt(this.value);
+          var page = parseInt(this.value);
+          if (isNaN(page) || page < 1) page = 1;
+          if (page > TOTAL_PAGES) page = TOTAL_PAGES; // Replace TOTAL_PAGES with your variable
+          gotoPage(page);
+        }
+      });
+    }
   }
 
   function fieldChanged(context) {
     hideInlineEditor();
-    console.log("fieldChanged");
 
     var rec = context.currentRecord;
     var sublistId = context.sublistId;
@@ -345,10 +385,8 @@ define(["N/https", "N/url", "N/currentRecord", "N/ui/dialog"], function (
     return;
   }
 
-  function gotoPage() {
-    var rec = currentRecord.get();
-    var inputPage = rec.getValue({ fieldId: "custpage_goto_page" }) || 1;
-    var pageNumber = parseInt(inputPage) - 1; // Convert to zero-based index
+  function gotoPage(pageNumber) {
+    var pageNumber = parseInt(pageNumber) - 1; // Convert to zero-based index
     if (isNaN(pageNumber) || pageNumber < 0) pageNumber = 0;
 
     var url = new URL(window.location.href);
