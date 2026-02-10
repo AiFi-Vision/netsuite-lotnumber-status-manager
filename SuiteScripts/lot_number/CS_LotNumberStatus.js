@@ -11,6 +11,46 @@ define(["N/https", "N/url", "N/currentRecord", "N/ui/dialog"], function (
 ) {
   var SUBLIST_ID = "custpage_lotnum_list";
 
+  // apply filters
+  function applyFilters() {
+    var urlObj = new URL(window.location.href);
+
+    var item = document.getElementById("custpage_filter_item");
+    var lot = document.getElementById("custpage_filter_lot");
+    var bin = document.getElementById("custpage_filter_bin");
+    var location = document.getElementById("custpage_filter_location");
+
+    if (item && item.value) {
+      urlObj.searchParams.set("item", item.value);
+    } else {
+      urlObj.searchParams.delete("item");
+    }
+
+    if (lot && lot.value) {
+      urlObj.searchParams.set("lot", lot.value);
+    } else {
+      urlObj.searchParams.delete("lot");
+    }
+
+    if (bin && bin.value) {
+      urlObj.searchParams.set("bin", bin.value);
+    } else {
+      urlObj.searchParams.delete("bin");
+    }
+
+    if (location && location.value) {
+      urlObj.searchParams.set("location", location.value);
+    } else {
+      urlObj.searchParams.delete("location");
+    }
+
+    // Reset pagination when filters change
+    urlObj.searchParams.set("page", 0);
+
+    window.location.href = urlObj.toString();
+  }
+
+
   function hideInlineEditor() {
     var listtextnonedit = document.querySelector("tr.listtextnonedit");
     if (listtextnonedit) listtextnonedit.style.display = "none";
@@ -299,6 +339,17 @@ define(["N/https", "N/url", "N/currentRecord", "N/ui/dialog"], function (
         }
       });
     }
+
+    ["custpage_filter_item", "custpage_filter_lot", "custpage_filter_bin", "custpage_filter_location"].forEach(
+      function (id) {
+        var el = document.getElementById(id);
+        if (el) {
+          el.addEventListener("change", function () {
+            applyFilters();
+          });
+        }
+      }
+    );
   }
 
   function fieldChanged(context) {
@@ -401,5 +452,6 @@ define(["N/https", "N/url", "N/currentRecord", "N/ui/dialog"], function (
     goNext: goNext,
     goPrev: goPrev,
     gotoPage: gotoPage,
+    applyFilters: applyFilters
   };
 });

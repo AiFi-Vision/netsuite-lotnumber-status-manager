@@ -30,6 +30,14 @@ define(["N/record", "N/search", "N/log", "N/ui/serverWidget"], function (
   function renderPage(context) {
     var form = ui.createForm({ title: "Lot Numbered Items Status Manager" });
 
+    var params = context.request.parameters;
+
+    var filterItem     = params.item || null;
+    var filterLot      = params.lot || null;
+    var filterBin      = params.bin || null;
+    var filterLocation = params.location || null;
+
+
     // --- SUBLIST ---
     var sublist = form.addSublist({
       id: "custpage_lotnum_list",
@@ -155,10 +163,32 @@ define(["N/record", "N/search", "N/log", "N/ui/serverWidget"], function (
       log.debug("Could not load inventorystatus options", e);
     }
 
+    var filters = [
+      ["item.islotitem", "is", "T"],
+      "AND",
+      ["status", "noneof", "3"]
+    ];
+
+    if (filterItem) {
+      filters.push("AND", ["item", "anyof", filterItem]);
+    }
+
+    if (filterLot) {
+      filters.push("AND", ["inventorynumber", "anyof", filterLot]);
+    }
+
+    if (filterBin) {
+      filters.push("AND", ["binnumber", "anyof", filterBin]);
+    }
+
+    if (filterLocation) {
+      filters.push("AND", ["location", "anyof", filterLocation]);
+    }
+
     // --- SEARCH INVENTORY BALANCE ---
     var inventorySearch = search.create({
       type: "inventorybalance",
-      filters: [["item.islotitem", "is", "T"]],
+      filters: filters,
       columns: [
         search.createColumn({ name: "item" }),
         search.createColumn({ name: "binnumber" }),
@@ -201,7 +231,7 @@ define(["N/record", "N/search", "N/log", "N/ui/serverWidget"], function (
 
     // --- PAGINATION ---
     var pageIndex = parseInt(context.request.parameters.page) || 0;
-    var pageSize = 3;
+    var pageSize = 20;
     var totalPages = Math.ceil(rows.length / pageSize);
     var start = pageIndex * pageSize;
     var pageRows = rows.slice(start, start + pageSize);
@@ -272,20 +302,101 @@ define(["N/record", "N/search", "N/log", "N/ui/serverWidget"], function (
 
     form.clientScriptModulePath = "./CS_LotNumberStatus.js";
 
+    // Item name list
+    var itemOptions = [];
+
+    var itemSearch = search.create({
+      type: search.Type.ITEM,
+      columns: ["itemid"],
+    });
+
+    var pagedData = itemSearch.runPaged({ pageSize: 1000 }); // Safe paging
+
+    pagedData.pageRanges.forEach(function(pageRange) {
+      var page = pagedData.fetch({ index: pageRange.index });
+      page.data.forEach(function(result) {
+        itemOptions.push({
+          value: result.id,
+          text: result.getValue("itemid"),
+        });
+      });
+    });
+
+
+    // Lot number list
+    var lotOptions = [];
+
+    var lotSearch = search.create({
+      type: "inventorynumber", // Use string instead of search.Type.INVENTORYNUMBER
+      columns: ["inventorynumber"],
+    });
+
+    var pagedData = lotSearch.runPaged({ pageSize: 1000 });
+
+    pagedData.pageRanges.forEach(function (pageRange) {
+      var page = pagedData.fetch({ index: pageRange.index });
+      page.data.forEach(function (result) {
+        lotOptions.push({
+          value: result.id,
+          text: result.getValue("inventorynumber"),
+        });
+      });
+    });
+
+    // --- Bin Number list ---
+    var binOptions = [];
+    try {
+      var binSearch = search.create({
+        type: "bin", // only works if Bin Management feature is enabled
+        columns: ["binnumber"],
+      });
+
+      var binPaged = binSearch.runPaged({ pageSize: 1000 });
+      binPaged.pageRanges.forEach(function (pageRange) {
+        var page = binPaged.fetch({ index: pageRange.index });
+        page.data.forEach(function (result) {
+          binOptions.push({
+            value: result.id,
+            text: result.getValue("binnumber"),
+          });
+        });
+      });
+    } catch (e) {
+      log.debug("Bin Management feature disabled, skipping bin options", e);
+      binOptions = []; // empty array if feature not available
+    }
+
+    // --- Location list ---
+    var locationOptions = [];
+    var locationSearch = search.create({
+      type: search.Type.LOCATION,
+      columns: ["name"],
+    });
+
+    var locationPaged = locationSearch.runPaged({ pageSize: 1000 });
+    locationPaged.pageRanges.forEach(function (pageRange) {
+      var page = locationPaged.fetch({ index: pageRange.index });
+      page.data.forEach(function (result) {
+        locationOptions.push({
+          value: result.id,
+          text: result.getValue("name"),
+        });
+      });
+    });
+
     // --- GO TO PAGE INPUT ---
     var buttonsRowHtml = `
       <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-          <button type="button" id="custpage_update_status_btn">Update Status</button>
-          <button type="button" id="custpage_prev_btn" ${
-            pageIndex === 0 ? "disabled" : ""
-          }>Previous</button>
-          <label for="custpage_goto_page_input"> Page:</label>
-          <input type="number" id="custpage_goto_page_input" min="1" max="${totalPages}" value="${
-      pageIndex + 1
-    }" style="width:60px;"><label> / ${totalPages}</label>
-          <button type="button" id="custpage_next_btn" ${
-            pageIndex + 1 >= totalPages ? "disabled" : ""
-          }>Next</button>
+        <button type="button" id="custpage_update_status_btn">Update Status</button>
+        <button type="button" id="custpage_prev_btn" ${pageIndex === 0 ? "disabled" : ""}>Previous</button>
+        <label for="custpage_goto_page_input"> Page:</label>
+        <input type="number" id="custpage_goto_page_input" min="1" max="${totalPages}" value="${pageIndex + 1}" style="width:60px;"><label> / ${totalPages}</label>
+        <button type="button" id="custpage_next_btn" ${pageIndex + 1 >= totalPages ? "disabled" : ""}>Next</button>
+
+        ${buildSelect("custpage_filter_item", "Item", itemOptions, filterItem)}
+        ${buildSelect("custpage_filter_lot", "Lot", lotOptions, filterLot)}
+        ${buildSelect("custpage_filter_bin", "Bin", binOptions, filterBin)}
+        ${buildSelect("custpage_filter_location", "Location", locationOptions, filterLocation)}
       </div>
       <script>
           // expose server value to client
@@ -328,10 +439,9 @@ define(["N/record", "N/search", "N/log", "N/ui/serverWidget"], function (
       var lotNumText = r.lotnum_text; // Lot number
       var itemId = parseInt(r.itemid); // convert to integer
       var locationId = parseInt(r.location); // convert to integer
-      var binNum = r.binNum ? parseInt(r.binNum) : null;
+      var binNum = r.binnum ? parseInt(r.binnum) : null;
       var quantity = parseFloat(r.updatequantity || r.onhand || 0);
 
-      // todo: update this
       var prevStatus = r.prevStatus || r.updatestatus;
       var newStatus = parseInt(r.updatestatus || r.newStatus);
 
@@ -477,6 +587,24 @@ define(["N/record", "N/search", "N/log", "N/ui/serverWidget"], function (
       });
       throw e; // rethrow if needed
     }
+  }
+
+  // Build option lists on the server
+  function buildSelect(id, label, options, selectedValue) {
+    var html = `<label style="margin-left:10px;">${label}:</label>`;
+    html += `<select id="${id}" style="margin-right:10px;">`;
+
+    // Add "All" option and mark as selected if selectedValue is empty or null
+    html += `<option value="" ${!selectedValue ? "selected" : ""}>All</option>`;
+
+    options.forEach(function(o) {
+      // Check if this option should be selected
+      var isSelected = selectedValue && o.value == selectedValue ? "selected" : "";
+      html += `<option value="${o.value}" ${isSelected}>${o.text}</option>`;
+    });
+
+    html += `</select>`;
+    return html;
   }
 
   return { onRequest: onRequest };
